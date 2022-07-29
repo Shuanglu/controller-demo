@@ -69,8 +69,10 @@ spec:
                   this file whether the captrue operation completes'
                 type: string
               failed:
-                description: count of failed capture
-                type: string
+                additionalProperties:
+                  type: string
+                description: pod name of the failed capture and reason of the failure
+                type: object
               started:
                 description: whether the captrue operation starts
                 type: string
