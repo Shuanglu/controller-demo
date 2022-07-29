@@ -1,0 +1,10 @@
+apiVersion: k8s-debugger.shuanglu.io/v1
+kind: Networktraces
+metadata:
+  name: networktraces-sample
+spec:
+  # TODO(user): Add fields here
+  kind: pod
+  name: nginx
+  namespace: default
+  duration: "30"

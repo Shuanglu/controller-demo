@@ -1,33 +1,20 @@
----
+# permissions for end users to view networktraces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
-  name: manager-role
+  name: networktraces-viewer-role
 rules:
 - apiGroups:
   - k8s-debugger.shuanglu.io
   resources:
   - networktraces
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - k8s-debugger.shuanglu.io
-  resources:
-  - networktraces/finalizers
-  verbs:
-  - update
 - apiGroups:
   - k8s-debugger.shuanglu.io
   resources:
   - networktraces/status
   verbs:
   - get
-  - patch
-  - update

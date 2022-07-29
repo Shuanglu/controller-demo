@@ -1,13 +1,13 @@
-# permissions for end users to edit guestbooks.
+# permissions for end users to edit networktraces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: guestbook-editor-role
+  name: networktraces-editor-role
 rules:
 - apiGroups:
-  - shuanglu.shuanglu.k8s.io
+  - k8s-debugger.shuanglu.io
   resources:
-  - guestbooks
+  - networktraces
   verbs:
   - create
   - delete
@@ -17,8 +17,8 @@ rules:
   - update
   - watch
 - apiGroups:
-  - shuanglu.shuanglu.k8s.io
+  - k8s-debugger.shuanglu.io
   resources:
-  - guestbooks/status
+  - networktraces/status
   verbs:
   - get

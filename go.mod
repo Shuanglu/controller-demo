@@ -1,4 +1,4 @@
-module github.com/shuanglu/controller-demo
+module shuanglu/k8s-debugger
 
 go 1.18
 

@@ -1,16 +1,16 @@
-domain: shuanglu.k8s.io
+domain: shuanglu.io
 layout:
 - go.kubebuilder.io/v3
 projectName: controller-demo
-repo: github.com/shuanglu/controller-demo
+repo: shuanglu/k8s-debugger
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: shuanglu.k8s.io
-  group: shuanglu
-  kind: Guestbook
-  path: github.com/shuanglu/controller-demo/api/v1
+  domain: shuanglu.io
+  group: k8s-debugger
+  kind: Networktraces
+  path: shuanglu/k8s-debugger/api/v1
   version: v1
 version: "3"

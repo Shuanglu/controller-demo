@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	shuangluv1 "github.com/shuanglu/controller-demo/api/v1"
-	"github.com/shuanglu/controller-demo/controllers"
+	k8sdebuggerv1 "shuanglu/k8s-debugger/api/v1"
+	"shuanglu/k8s-debugger/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -44,7 +44,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(shuangluv1.AddToScheme(scheme))
+	utilruntime.Must(k8sdebuggerv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -71,7 +71,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "8aebd41c.shuanglu.k8s.io",
+		LeaderElectionID:       "f91ff6f1.shuanglu.io",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -89,11 +89,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.GuestbookReconciler{
+	if err = (&controllers.NetworktracesReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Guestbook")
+		setupLog.Error(err, "unable to create controller", "controller", "Networktraces")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

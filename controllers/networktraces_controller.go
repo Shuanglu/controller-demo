@@ -24,29 +24,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	shuangluv1 "github.com/shuanglu/controller-demo/api/v1"
+	k8sdebuggerv1 "shuanglu/k8s-debugger/api/v1"
 )
 
-// GuestbookReconciler reconciles a Guestbook object
-type GuestbookReconciler struct {
+// NetworktracesReconciler reconciles a Networktraces object
+type NetworktracesReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=shuanglu.shuanglu.k8s.io,resources=guestbooks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=shuanglu.shuanglu.k8s.io,resources=guestbooks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=shuanglu.shuanglu.k8s.io,resources=guestbooks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s-debugger.shuanglu.io,resources=networktraces,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s-debugger.shuanglu.io,resources=networktraces/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s-debugger.shuanglu.io,resources=networktraces/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Guestbook object against the actual cluster state, and then
+// the Networktraces object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
-func (r *GuestbookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,8 +55,8 @@ func (r *GuestbookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *GuestbookReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *NetworktracesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&shuangluv1.Guestbook{}).
+		For(&k8sdebuggerv1.Networktraces{}).
 		Complete(r)
 }

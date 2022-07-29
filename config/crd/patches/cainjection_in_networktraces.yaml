@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-  name: guestbooks.shuanglu.shuanglu.k8s.io
+  name: networktraces.k8s-debugger.shuanglu.io
