@@ -48,8 +48,6 @@ type NetworktracesStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// whether the captrue operation completes
 	Completed string `json:"completed"`
-	// whether the captrue operation starts
-	Started string `json:"started"`
 	// count of successful capture
 	Successful string `json:"successful"`
 	// pod name of the failed capture and reason of the failure
