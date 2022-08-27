@@ -9,16 +9,16 @@ metadata:
 spec:
   group: k8s-debugger.shuanglu.io
   names:
-    kind: Networktraces
-    listKind: NetworktracesList
+    kind: Networktrace
+    listKind: NetworktraceList
     plural: networktraces
-    singular: networktraces
+    singular: networktrace
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Networktraces is the Schema for the networktraces API
+        description: Networktrace is the Schema for the Networktrace API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,13 +33,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: NetworktracesSpec defines the desired state of Networktraces
+            description: NetworktraceSpec defines the desired state of Networktrace
             properties:
               duration:
                 description: '"duration" of the capture'
                 type: string
               kind:
-                description: 'Foo is an example field of Networktraces. Edit networktraces_types.go
+                description: 'Foo is an example field of Networktrace. Edit Networktrace_types.go
                   to remove/update Foo string `json:"foo,omitempty"` "kind" of the
                   target resource. Allowed values are: ''deployment''/''daemonset''/''statefulset''/''pod'''
                 type: string
@@ -61,7 +61,7 @@ spec:
             - namespace
             type: object
           status:
-            description: NetworktracesStatus defines the observed state of Networktraces
+            description: NetworktraceStatus defines the observed state of Networktrace
             properties:
               completed:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
@@ -73,16 +73,12 @@ spec:
                   type: string
                 description: pod name of the failed capture and reason of the failure
                 type: object
-              started:
-                description: whether the captrue operation starts
-                type: string
               successful:
                 description: count of successful capture
                 type: string
             required:
             - completed
             - failed
-            - started
             - successful
             type: object
         type: object

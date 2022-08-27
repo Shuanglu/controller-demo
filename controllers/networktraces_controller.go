@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,7 @@ import (
 
 	k8sdebuggerv1 "shuanglu/k8s-debugger/api/v1"
 
+	kapp "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -59,14 +61,13 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// TODO(user): your logic here
 
 	// Fetch the networktraces object
-	var networktraces k8sdebuggerv1.Networktraces
-	if err := r.Get(ctx, req.NamespacedName, &networktraces); err != nil {
+	var networktrace k8sdebuggerv1.Networktrace
+	if err := r.Get(ctx, req.NamespacedName, &networktrace); err != nil {
 		log.Log.Error(err, "unable to fetch Networktraces")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	// Fetch the pods
-
+	
+	
 	// Fetch the jobs
 	var childJobs kbatch.JobList
 	if err := r.List(ctx, &childJobs, client.InNamespace(req.Namespace), client.MatchingFields{jobOwnerKey: req.Name}); err != nil {
@@ -89,10 +90,12 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	var successfulJobs []*kbatch.Job
 	var failedJobs []*kbatch.Job
 	for _, childJob := range childJobs.Items {
-		_, finishType := isJobFinished(&childJob)
-		switch finishType {
-		case "":
+		finish, finishType := isJobFinished(&childJob)
+		if !finish {
 			activeJobs = append(activeJobs, &childJob)
+			continue
+		}
+		switch finishType {
 		case kbatch.JobComplete:
 			successfulJobs = append(successfulJobs, &childJob)
 		case kbatch.JobFailed:
@@ -100,31 +103,56 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 	if len(activeJobs) == 0 && (len(successfulJobs) != 0 || len(failedJobs) != 0) {
-		networktraces.Status.Completed = "true"
-	}
-
-	// Update the failure reason
-	for _, job := range failedJobs {
-		var pods corev1.PodList
-		selectors := job.Spec.Selector.MatchLabels
-		labels := make(client.MatchingLabels)
-		for k, v := range selectors {
-			labels[k] = v
-		}
-		err := r.List(ctx, &pods, client.InNamespace(req.Namespace), labels)
-		if err != nil {
-			log.Log.Error(err, "unable to list Pods")
-		}
-		// ideally we should only have one pod
-		for _, pod := range pods.Items {
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				if containerStatus.Name == "networktracesagent" {
-					networktraces.Status.Failed[job.Name] = containerStatus.State.Terminated.Message
+		networktrace.Status.Completed = "true"
+			// Update the failure reason
+		for _, job := range failedJobs {
+			var pods corev1.PodList
+			selectors := job.Spec.Selector.MatchLabels
+			labels := make(client.MatchingLabels)
+			for k, v := range selectors {
+				labels[k] = v
+			}
+			err := r.List(ctx, &pods, client.InNamespace(req.Namespace), labels)
+			if err != nil {
+				log.Log.Error(err, "unable to list Pods")
+			}
+			// ideally we should only have one pod
+			for _, pod := range pods.Items {
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if containerStatus.Name == "networktracesagent" {
+						networktrace.Status.Failed[job.Name] = containerStatus.State.Terminated.Message
+					}
 				}
 			}
 		}
+	} else {
+		networktrace.Status.Completed = "false"
+		var captureJobs []kbatch.Job
+		var labels client.MatchingLabels
+		var targetPods corev1.PodList
+		for k, v := range networktrace.Spec.Labels {
+			labels[k] = v
+		}
+		var pods corev1.PodList
+		pods = r.List(ctx, pods, client.InNamespace(networktrace.Spec.Namespace))
+		switch strings.ToLower(networktrace.Spec.Kind) {
+		case "deployment":
+			var deploymentList kapp.DeploymentList
+			r.List(ctx, &deploymentList, labels)
+			// ideally we should only have one deployment
+			for _, deployment := range deploymentList.Items {
+				rsId := deployment.ObjectMeta.UID
+				for _
+			}
+		case "damemonset":
+			var DaemonSetList kapp.DaemonSetList
+			r.List(ctx, &DaemonSetList, labels)
+
+		}
 	}
-	if err := r.Status().Update(ctx, &networktraces); err != nil {
+
+
+	if err := r.Status().Update(ctx, &networktrace); err != nil {
 		log.Log.Error(err, "unable to update networktraces status")
 	}
 

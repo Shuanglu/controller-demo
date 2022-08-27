@@ -23,12 +23,12 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// NetworktracesSpec defines the desired state of Networktraces
-type NetworktracesSpec struct {
+// NetworktraceSpec defines the desired state of Networktrace
+type NetworktraceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Networktraces. Edit networktraces_types.go to remove/update
+	// Foo is an example field of Networktrace. Edit Networktrace_types.go to remove/update
 	//Foo string `json:"foo,omitempty"`
 	// "kind" of the target resource. Allowed values are: 'deployment'/'daemonset'/'statefulset'/'pod'
 	Kind string `json:"kind"`
@@ -42,8 +42,8 @@ type NetworktracesSpec struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// NetworktracesStatus defines the observed state of Networktraces
-type NetworktracesStatus struct {
+// NetworktraceStatus defines the observed state of Networktrace
+type NetworktraceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// whether the captrue operation completes
@@ -57,24 +57,24 @@ type NetworktracesStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// Networktraces is the Schema for the networktraces API
-type Networktraces struct {
+// Networktrace is the Schema for the Networktrace API
+type Networktrace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NetworktracesSpec   `json:"spec,omitempty"`
-	Status NetworktracesStatus `json:"status,omitempty"`
+	Spec   NetworktraceSpec   `json:"spec,omitempty"`
+	Status NetworktraceStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// NetworktracesList contains a list of Networktraces
-type NetworktracesList struct {
+// NetworktraceList contains a list of Networktrace
+type NetworktraceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Networktraces `json:"items"`
+	Items           []Networktrace `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Networktraces{}, &NetworktracesList{})
+	SchemeBuilder.Register(&Networktrace{}, &NetworktraceList{})
 }
