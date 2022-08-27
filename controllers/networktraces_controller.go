@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,6 +31,8 @@ import (
 	kapp "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -66,14 +69,116 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Log.Error(err, "unable to fetch Networktraces")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	
-	
+
+	//var captureJobs []kbatch.Job
+	labels := make(client.MatchingLabels)
+	targetPodsMapping := make(map[string][]corev1.Pod)
+	for k, v := range networktrace.Spec.Labels {
+		labels[k] = v
+	}
+	var podList corev1.PodList
+	r.List(ctx, &podList, client.InNamespace(networktrace.Spec.Namespace))
+
+	switch strings.ToLower(networktrace.Spec.Kind) {
+	case "deployment":
+		var deploymentList kapp.DeploymentList
+		r.List(ctx, &deploymentList, labels)
+		// ideally we should only have one deployment
+		for _, deployment := range deploymentList.Items {
+			var replicasets kapp.ReplicaSetList
+			r.List(ctx, &replicasets)
+			for _, replicaset := range replicasets.Items {
+				for _, rsOwnerReference := range replicaset.OwnerReferences {
+					if rsOwnerReference.UID == deployment.ObjectMeta.UID {
+						for _, pod := range podList.Items {
+							if validatePodOwnerReference(pod, replicaset.GetUID()) {
+								targetPodsMapping[pod.Spec.NodeName] = append(targetPodsMapping[pod.Spec.NodeName], pod)
+							}
+						}
+					}
+				}
+			}
+		}
+
+	case "damemonset":
+		var daemonSetList kapp.DaemonSetList
+		r.List(ctx, &daemonSetList, labels)
+		for _, daemonset := range daemonSetList.Items {
+			for _, pod := range podList.Items {
+				if validatePodOwnerReference(pod, daemonset.GetUID()) {
+					targetPodsMapping[pod.Spec.NodeName] = append(targetPodsMapping[pod.Spec.NodeName], pod)
+				}
+			}
+		}
+
+	case "statefulset":
+		var statefulsetList kapp.StatefulSetList
+		r.List(ctx, &statefulsetList, labels)
+		for _, statestatefulset := range statefulsetList.Items {
+			for _, pod := range podList.Items {
+				if validatePodOwnerReference(pod, statestatefulset.GetUID()) {
+					targetPodsMapping[pod.Spec.NodeName] = append(targetPodsMapping[pod.Spec.NodeName], pod)
+				}
+			}
+		}
+
+	case "pod":
+		for _, pod := range podList.Items {
+			target := true
+			for label, value := range labels {
+				if v, ok := pod.Labels[label]; ok {
+					if v == value {
+						continue
+					}
+				}
+				target = false
+				break
+			}
+			if target {
+				targetPodsMapping[pod.Spec.NodeName] = append(targetPodsMapping[pod.Spec.NodeName], pod)
+			}
+		}
+	}
+
 	// Fetch the jobs
 	var childJobs kbatch.JobList
 	if err := r.List(ctx, &childJobs, client.InNamespace(req.Namespace), client.MatchingFields{jobOwnerKey: req.Name}); err != nil {
 		log.Log.Error(err, "unable to list Jobs")
 		return ctrl.Result{}, err
 	}
+	if len(childJobs.Items) == len(targetPodsMapping) {
+		klog.Infof("Job count match the target count. Will not create new job")
+		r.jobStatusCheck(ctx, childJobs, &networktrace)
+	} else {
+		childJobNode := make(map[string]bool)
+		for _, childJob := range childJobs.Items {
+			childJobNode[strings.Split(childJob.Name, "_")[1]] = true
+		}
+		pendingPodsMapping := make(map[string][]corev1.Pod)
+		for node, pods := range targetPodsMapping {
+			if _, ok := childJobNode[node]; !ok {
+				pendingPodsMapping[node] = pods
+				tmpJob := &kbatch.Job{}
+				tmpJob.Name = "networktrace" + "_" + node
+				tmpJob.Spec = kbatch.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							NodeName: node,
+						},
+					},
+				}
+
+			}
+		}
+	}
+	if err := r.Status().Update(ctx, &networktrace); err != nil {
+		log.Log.Error(err, "unable to update networktraces status")
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *NetworktracesReconciler) jobStatusCheck(ctx context.Context, childJobs kbatch.JobList, networktrace *k8sdebuggerv1.Networktrace) {
 
 	// find the active list of jobs
 	isJobFinished := func(job *kbatch.Job) (bool, kbatch.JobConditionType) {
@@ -86,13 +191,13 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return false, ""
 	}
 
-	var activeJobs []*kbatch.Job
+	var activeJobNames []string
 	var successfulJobs []*kbatch.Job
 	var failedJobs []*kbatch.Job
 	for _, childJob := range childJobs.Items {
 		finish, finishType := isJobFinished(&childJob)
 		if !finish {
-			activeJobs = append(activeJobs, &childJob)
+			activeJobNames = append(activeJobNames, childJob.Namespace+"_"+childJob.Name)
 			continue
 		}
 		switch finishType {
@@ -102,9 +207,9 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			failedJobs = append(failedJobs, &childJob)
 		}
 	}
-	if len(activeJobs) == 0 && (len(successfulJobs) != 0 || len(failedJobs) != 0) {
+	if len(activeJobNames) == 0 && (len(successfulJobs) != 0 || len(failedJobs) != 0) {
 		networktrace.Status.Completed = "true"
-			// Update the failure reason
+		// Update the failure reason
 		for _, job := range failedJobs {
 			var pods corev1.PodList
 			selectors := job.Spec.Selector.MatchLabels
@@ -112,7 +217,7 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			for k, v := range selectors {
 				labels[k] = v
 			}
-			err := r.List(ctx, &pods, client.InNamespace(req.Namespace), labels)
+			err := r.List(ctx, &pods, client.InNamespace(networktrace.ObjectMeta.Namespace), labels)
 			if err != nil {
 				log.Log.Error(err, "unable to list Pods")
 			}
@@ -127,41 +232,23 @@ func (r *NetworktracesReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	} else {
 		networktrace.Status.Completed = "false"
-		var captureJobs []kbatch.Job
-		var labels client.MatchingLabels
-		var targetPods corev1.PodList
-		for k, v := range networktrace.Spec.Labels {
-			labels[k] = v
-		}
-		var pods corev1.PodList
-		pods = r.List(ctx, pods, client.InNamespace(networktrace.Spec.Namespace))
-		switch strings.ToLower(networktrace.Spec.Kind) {
-		case "deployment":
-			var deploymentList kapp.DeploymentList
-			r.List(ctx, &deploymentList, labels)
-			// ideally we should only have one deployment
-			for _, deployment := range deploymentList.Items {
-				rsId := deployment.ObjectMeta.UID
-				for _
-			}
-		case "damemonset":
-			var DaemonSetList kapp.DaemonSetList
-			r.List(ctx, &DaemonSetList, labels)
-
-		}
+		networktrace.Status.Active = activeJobNames
 	}
 
+}
 
-	if err := r.Status().Update(ctx, &networktrace); err != nil {
-		log.Log.Error(err, "unable to update networktraces status")
+func validatePodOwnerReference(pod corev1.Pod, uid types.UID) bool {
+	for _, ownerReference := range pod.OwnerReferences {
+		if ownerReference.UID == uid {
+			return true
+		}
 	}
-
-	return ctrl.Result{}, nil
+	return false
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NetworktracesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&k8sdebuggerv1.Networktraces{}).
+		For(&k8sdebuggerv1.Networktrace{}).
 		Complete(r)
 }

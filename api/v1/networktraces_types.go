@@ -52,6 +52,8 @@ type NetworktraceStatus struct {
 	Successful string `json:"successful"`
 	// pod name of the failed capture and reason of the failure
 	Failed map[string]string `json:"failed"`
+	// pod name of the active pods used for capture
+	Active []string `json:"active"`
 }
 
 //+kubebuilder:object:root=true

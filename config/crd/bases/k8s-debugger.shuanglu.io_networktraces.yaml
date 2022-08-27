@@ -63,6 +63,11 @@ spec:
           status:
             description: NetworktraceStatus defines the observed state of Networktrace
             properties:
+              active:
+                additionalProperties:
+                  type: string
+                description: pod name of the active pods used for capture
+                type: object
               completed:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
@@ -77,6 +82,7 @@ spec:
                 description: count of successful capture
                 type: string
             required:
+            - active
             - completed
             - failed
             - successful
